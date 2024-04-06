@@ -12,6 +12,7 @@ boolean es_numero (char c);
 boolean es_operador (char c);
 boolean tiene_mayor_igual_precedencia (char a, char b);
 int precedencia (char c);
+double operacion(double valor1, double valor2, char c);
 
 int main (int argc, char *argv[]) {
     
@@ -42,7 +43,7 @@ int main (int argc, char *argv[]) {
     double incognitas[26];
     asignar_incognitas(expr_original, incognitas);
 
-    printf("\n \033[92mResultado: \033[0m%lf", resolver(expr_postfija, incognitas));
+    printf("\n \033[92mResultado: \033[0m%lf\n", resolver(expr_postfija, incognitas));
     return 0;
 }
 
@@ -170,7 +171,69 @@ void asignar_incognitas (char * expr, double * incognitas) {
 }
 
 double resolver (char * expr_postfija, double * incognitas) {
-    
+    pila stack;
+    initialize_pila(&stack);
+    elemento e;
+    double resultado = 0;
+    double valor1, valor2;
+    double operaciones;
+    char * buffer, * aux;
+
+    int tam = strlen(expr_postfija);
+    for (int i=0; i<tam; i++) {
+        char c = expr_postfija[i];
+
+        if (c >= 'A' && c <= 'Z') {
+            buffer = (char *) malloc(101*sizeof(char));
+            sprintf(buffer, "%lf", incognitas[c-'A']);
+            e.valor = (int) buffer;
+            push(&stack, e);
+
+        } else if (es_numero(c)) {
+            int j=0;
+            buffer = (char *) malloc(101*sizeof(char));
+            buffer[j] = expr_postfija[i];
+            j++;
+
+            while (i+1 < tam && (es_numero(expr_postfija[i+1]) || expr_postfija[i+1] == '.')) {
+                i++;
+                buffer[j] = expr_postfija[i];
+                j++;
+            }
+            buffer[j] = '\0';
+            e.valor = (int) buffer;
+            push(&stack, e);
+
+        } else if (es_operador(c)) {
+            if (!empty_pila(&stack)) {
+                aux = (char *) top(&stack).valor;
+                pop(&stack);
+                valor1 = atof(aux);
+                free(aux);
+            }
+            if (!empty_pila(&stack)) {
+                aux = (char *) top(&stack).valor;
+                pop(&stack);
+                valor2 = atof(aux);
+                free(aux);
+            }
+            double temp = operacion(valor1, valor2, c);
+            buffer = (char *) malloc(101*sizeof(char));
+            sprintf(buffer, "%lf", temp);
+            e.valor = (int) buffer;
+            push(&stack, e);
+        }
+
+    }
+
+    if (!empty_pila(&stack)) {
+        aux = (char *) top(&stack).valor;
+        pop(&stack);
+        resultado = atof(aux);
+        free(aux);
+    }
+    destroy_pila(&stack);
+    return resultado;
 }
 
 boolean es_numero (char c) {
@@ -201,6 +264,34 @@ int precedencia (char c) {
         return 1;
         break;
 
+    default:
+        return 0;
+        break;
+    }
+}
+
+double operacion(double valor1, double valor2, char c) {
+    switch(c) {
+    case '^':
+        return pow(valor2, valor1);
+        break;
+
+    case '*':
+        return valor2 * valor1;
+        break;
+
+    case '/':
+        return valor2 / valor1;
+        break;
+
+    case '+':
+        return valor2 + valor1;
+        break;
+
+    case '-':
+        return valor2 - valor1;
+        break;
+    
     default:
         return 0;
         break;
